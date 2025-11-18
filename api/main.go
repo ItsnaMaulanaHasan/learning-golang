@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
@@ -13,54 +14,61 @@ import (
 
 var db *sql.DB
 var App *gin.Engine
+var once sync.Once
 
-func init() {
-	// Connect to the database
-	db_url := os.Getenv("DATABASE_URL")
-
-	var err error
-	db, err = sql.Open("postgres", db_url)
-	if err != nil {
-		log.Fatalf("Failed to open database connection: %v", err)
-	}
-
-	// Test the connection
-	err = db.Ping()
-	if err != nil {
-		log.Fatalf("Failed to ping database: %v", err)
-	}
-	fmt.Println("Successfully connected to the database!")
-
-	// Initialize Gin router
-	App = gin.New()
-
-	// Load HTML templates
-	App.LoadHTMLGlob("templates/*")
-
-	// Define routes
-	App.GET("/", func(c *gin.Context) {
-		// Fetch all users and render the index page
-		users, err := getUsersFromDB()
-		if err != nil {
-			c.HTML(http.StatusInternalServerError, "index.html", gin.H{"error": err.Error()})
-			return
+func getApp() *gin.Engine {
+	once.Do(func() {
+		// Connect to the database
+		db_url := os.Getenv("DATABASE_URL")
+		if db_url == "" {
+			log.Fatal("DATABASE_URL is empty")
 		}
-		c.HTML(http.StatusOK, "index.html", gin.H{"users": users})
-	})
 
-	App.GET("/users", func(c *gin.Context) {
-		// Fetch all users and return as JSON
-		users, err := getUsersFromDB()
+		var err error
+		db, err = sql.Open("postgres", db_url)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
+			log.Fatalf("Failed to open database connection: %v", err)
 		}
-		c.JSON(http.StatusOK, users)
-	})
 
-	App.POST("/users", createUser)
-	App.PUT("/users/:id", updateUser)
-	App.DELETE("/users/:id", deleteUser)
+		// Test the connection
+		err = db.Ping()
+		if err != nil {
+			log.Fatalf("Failed to ping database: %v", err)
+		}
+		fmt.Println("Successfully connected to the database!")
+
+		// Initialize Gin router
+		App = gin.New()
+
+		// Load HTML templates
+		App.LoadHTMLGlob("templates/*")
+
+		// Define routes
+		App.GET("/", func(c *gin.Context) {
+			// Fetch all users and render the index page
+			users, err := getUsersFromDB()
+			if err != nil {
+				c.HTML(http.StatusInternalServerError, "index.html", gin.H{"error": err.Error()})
+				return
+			}
+			c.HTML(http.StatusOK, "index.html", gin.H{"users": users})
+		})
+
+		App.GET("/users", func(c *gin.Context) {
+			// Fetch all users and return as JSON
+			users, err := getUsersFromDB()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, users)
+		})
+
+		App.POST("/users", createUser)
+		App.PUT("/users/:id", updateUser)
+		App.DELETE("/users/:id", deleteUser)
+	})
+	return App
 }
 
 // Handler to create a new user
@@ -146,5 +154,5 @@ func getUsersFromDB() ([]map[string]interface{}, error) {
 }
 
 func Handler(w http.ResponseWriter, r *http.Request) {
-	App.ServeHTTP(w, r)
+	getApp().ServeHTTP(w, r)
 }
