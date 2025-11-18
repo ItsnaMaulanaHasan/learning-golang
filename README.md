@@ -121,6 +121,11 @@ Contributions are welcome! If you'd like to contribute, please follow these step
 
 ---
 
+## Preview
+![alt text](./assets/preview/image.png)
+
+---
+
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
