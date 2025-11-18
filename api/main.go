@@ -13,18 +13,18 @@ import (
 
 var (
 	host     = os.Getenv("DB_HOST") // Use the container name
-	port     = os.Getenv("DB_PORT") // Use the container's internal port
 	user     = os.Getenv("DB_USER")
 	password = os.Getenv("DB_PASSWORD")
 	dbname   = os.Getenv("DB_NAME")
 )
 
 var db *sql.DB
+var App *gin.Engine
 
 func init() {
 	// Connect to the database
-	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
+	psqlInfo := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=require",
+		host, user, password, dbname)
 	var err error
 	db, err = sql.Open("postgres", psqlInfo)
 	if err != nil {
@@ -40,13 +40,13 @@ func init() {
 	fmt.Println("Successfully connected to the database!")
 
 	// Initialize Gin router
-	r := gin.Default()
+	App = gin.New()
 
 	// Load HTML templates
-	r.LoadHTMLGlob("templates/*")
+	App.LoadHTMLGlob("templates/*")
 
 	// Define routes
-	r.GET("/", func(c *gin.Context) {
+	App.GET("/", func(c *gin.Context) {
 		// Fetch all users and render the index page
 		users, err := getUsersFromDB()
 		if err != nil {
@@ -56,7 +56,7 @@ func init() {
 		c.HTML(http.StatusOK, "index.html", gin.H{"users": users})
 	})
 
-	r.GET("/users", func(c *gin.Context) {
+	App.GET("/users", func(c *gin.Context) {
 		// Fetch all users and return as JSON
 		users, err := getUsersFromDB()
 		if err != nil {
@@ -66,12 +66,12 @@ func init() {
 		c.JSON(http.StatusOK, users)
 	})
 
-	r.POST("/users", createUser)
-	r.PUT("/users/:id", updateUser)
-	r.DELETE("/users/:id", deleteUser)
+	App.POST("/users", createUser)
+	App.PUT("/users/:id", updateUser)
+	App.DELETE("/users/:id", deleteUser)
 
 	// Start the server
-	r.Run(":8080")
+	App.Run(":8080")
 }
 
 // Handler to create a new user
@@ -154,4 +154,8 @@ func getUsersFromDB() ([]map[string]interface{}, error) {
 	}
 
 	return users, nil
+}
+
+func Handler(w http.ResponseWriter, r *http.Request) {
+	App.ServeHTTP(w, r)
 }
