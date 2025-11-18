@@ -11,23 +11,15 @@ import (
 	_ "github.com/lib/pq"
 )
 
-var (
-	host     = os.Getenv("DB_HOST") // Use the container name
-	user     = os.Getenv("DB_USER")
-	password = os.Getenv("DB_PASSWORD")
-	dbname   = os.Getenv("DB_NAME")
-)
-
 var db *sql.DB
 var App *gin.Engine
 
 func init() {
 	// Connect to the database
-	psqlInfo := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=require",
-		user, password, host, dbname)
+	db_url := os.Getenv("DATABASE_URL")
 
 	var err error
-	db, err = sql.Open("postgres", psqlInfo)
+	db, err = sql.Open("postgres", db_url)
 	if err != nil {
 		log.Fatalf("Failed to open database connection: %v", err)
 	}
