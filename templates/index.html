@@ -48,7 +48,7 @@
     <table id="userTable">
         <thead>
             <tr>
-                <th>ID</th>
+                <th>No</th>
                 <th>Name</th>
                 <th>Department</th>
                 <th>Email</th>
@@ -101,10 +101,10 @@
                     const tbody = document.querySelector('#userTable tbody');
                     tbody.innerHTML = ''; // Clear the table
 
-                    users.forEach(user => {
+                    users.forEach((user, i) => {
                         const row = document.createElement('tr');
                         row.innerHTML = `
-                            <td>${user.id}</td>
+                            <td>${i+1}</td>
                             <td>${user.name}</td>
                             <td>${user.department}</td>
                             <td>${user.email}</td>
