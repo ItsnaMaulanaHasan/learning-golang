@@ -2,7 +2,9 @@ package handler
 
 import (
 	"database/sql"
+	"embed"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -15,6 +17,9 @@ import (
 var db *sql.DB
 var App *gin.Engine
 var once sync.Once
+
+//go:embed templates/*
+var templatesFS embed.FS
 
 func getApp() *gin.Engine {
 	once.Do(func() {
@@ -39,9 +44,11 @@ func getApp() *gin.Engine {
 
 		// Initialize Gin router
 		App = gin.New()
+		App.Use(gin.Recovery())
 
 		// Load HTML templates
-		App.LoadHTMLGlob("templates/*")
+		tmpl := template.Must(template.ParseFS(templatesFS, "templates/*"))
+		App.SetHTMLTemplate(tmpl)
 
 		// Define routes
 		App.GET("/", func(c *gin.Context) {
